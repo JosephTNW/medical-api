@@ -20,11 +20,7 @@ If you don't run this you won't be able to do CRUD on the [medical-dash](https:/
    - The resulted table will be truncated due to timeout
    - Truncate the whole table
    - Go to the SQL section and input the following query:
-     ```LOAD DATA INFILE 'c:/cvd_cleaned.csv' IGNORE
-INTO TABLE your_prev_table_name
-FIELDS TERMINATED BY ','
-ENCLOSED BY '"'
-LINES TERMINATED BY '\n'```
+     ```LOAD DATA INFILE 'c:/cvd_cleaned.csv' IGNORE INTO TABLE your_prev_table_name FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n'```
    - There may be additional truncation, edit the fields character limit to solve this issue
    - Delete the first row if it is indeed the column names.
 
