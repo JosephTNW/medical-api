@@ -6,10 +6,12 @@ If you don't run this you won't be able to do CRUD on the [medical-dash](https:/
 ## Prerequisites
 1. Working XAMPP / MySQL Local Database
 2. Import the data on `cvd_cleaned.csv` to the MySQL database. You have two options here:
-      *Import through .sql file on the [drive](https://drive.google.com/file/d/1KfGiWeAwyI9aYrajByQi_S7PCVTHvDgD/view?usp=drive_link) (EASY)*
+
+   *Import through .sql file on the [drive](https://drive.google.com/file/d/1KfGiWeAwyI9aYrajByQi_S7PCVTHvDgD/view?usp=drive_link) (EASY)*
    - Create a new database
    - Import the .sql file
-     *Import the csv (HARD)*
+
+   *Import the csv (HARD)*
    - Put the file `cvd_cleaned.csv` to your `xampp/mysql/data/yourdbname` directory
    - Go to import section
    - Select your file on the selector
