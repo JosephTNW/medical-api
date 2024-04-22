@@ -5,6 +5,7 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 const port = 3050;
 
 const table_name = process.env["DB_TABLE_NAME"];
@@ -68,26 +69,26 @@ app.get("/countAll/", async (req, res) => {
     const end_result = {};
 
     try {
-        await Promise.all(
-            column_list.map((column) => {
-                return new Promise((resolve, reject) => {
-                    connection.query(
-                        `SELECT ${column}, COUNT(*) AS category_count FROM ${table_name} GROUP BY ${column}`,
-                        (err, results) => {
-                            if (err) {
-                                console.error("Error executing MySQL query:", err);
-                                reject(err);
-                            } else {
-                                end_result[column] = results;
-                                resolve();
-                            }
-                        }
-                    );
-                });
-            })
-        );
+      await Promise.all(
+        column_list.map((column) => {
+          return new Promise((resolve, reject) => {
+            connection.query(
+              `SELECT ${column}, COUNT(*) AS category_count FROM ${table_name} GROUP BY ${column}`,
+              (err, results) => {
+                if (err) {
+                  console.error("Error executing MySQL query:", err);
+                  reject(err);
+                } else {
+                  end_result[column] = results;
+                  resolve();
+                }
+              }
+            );
+          });
+        })
+      );
 
-        res.json(end_result);
+      res.json(end_result);
     } catch (err) {
         console.error("Error executing MySQL query:", err);
         res.status(500).json({ error: "Failed to fetch data" });
@@ -127,7 +128,7 @@ app.get("/:itemNum/:page", (req, res) => {
   );
 });
 
-app.post("/", (req, res) => {
+app.post("/create", (req, res) => {
   const newData = req.body;
   connection.query(
     `INSERT INTO ${table_name} SET ?`,
@@ -138,7 +139,7 @@ app.post("/", (req, res) => {
         res.status(500).json({ error: "Failed to create new data" });
         return;
       }
-      res.json({ message: "New data created successfully" });
+      res.json({ status: 200, message: "New data created successfully" });
     }
   );
 });
@@ -155,7 +156,7 @@ app.put("/update/:id", (req, res) => {
         res.status(500).json({ error: "Failed to update data" });
         return;
       }
-      res.json({ message: "Data updated successfully" });
+      res.json({ status:200, message: "Data updated successfully" });
     }
   );
 });
