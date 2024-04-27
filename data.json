@@ -1,0 +1,20 @@
+{
+    "General_Health": "Fair",
+    "Checkup": "Never",
+    "Exercise": "Yes",
+    "Skin_Cancer": "Yes",
+    "Other_Cancers": "Yes",
+    "Depression": "Yes",
+    "Diabetes": "No",
+    "Arthritis": "Yes",
+    "Sex": "Male",
+    "Age_Category": "60-64",
+    "Height": 200,
+    "Weight": 100,
+    "BMI": 20,
+    "Smoking_History": "Yes",
+    "Alcohol_Consumption": 1,
+    "Fruit_Consumption": 1,
+    "Green_Vegetables_Consumption": 1,
+    "FriedPotato_Consumption": 1
+  }
