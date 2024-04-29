@@ -285,10 +285,13 @@ app.post('/preprocess', (req, res) => {
   pythonProcess.stdout.on('end', () => {
     preprocessData = preprocessData.replace(/NaN/g, 'null');
 
-    try {
-      const parsedData = JSON.parse(preprocessData)
-      res.json(parsedData);
+    const jsonStartIdx = preprocessData.indexOf('{');
+    const jsonEndIdx = preprocessData.indexOf('}') + 1;
+    const jsonData = preprocessData.substring(jsonStartIdx, jsonEndIdx);  
 
+    try {
+      const parsedData = JSON.parse(jsonData)
+      res.json(parsedData);
     } catch (error) {
       console.error('Error preprocessing data:', error);
       res.status(500).send('Failed to preprocess data');

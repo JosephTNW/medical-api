@@ -3,9 +3,14 @@ import json
 import sys
 import pickle
 import os
+from dotenv import load_dotenv
 from sklearn.decomposition import PCA
 
+load_dotenv()
+
 def preprocess():
+    cwd = os.getcwd()
+    
     try: 
         input_data_str = sys.stdin.read()
 
@@ -41,7 +46,8 @@ def preprocess():
                 diseases[i] = diseases[i].map({'No': 0, 'Yes': 1})
 
         diseases.rename(columns={'Height': 'Height_(cm)'}, inplace=True)
-        diseases.rename(columns={'Weight': 'Weight_()'}, inplace=True)
+        diseases.rename(columns={'Weight': 'Weight_(kg)'}, inplace=True)
+        diseases.rename(columns={'Other_Cancers': 'Other_Cancer'}, inplace=True)
 
         file_columns = [
             'Exercise', 'Skin_Cancer', 'Other_Cancer', 'Depression', 'Arthritis', 'Sex', 'Height_(cm)', "Weight_(kg)", 
@@ -52,31 +58,59 @@ def preprocess():
             'ac_35-39', 'ac_40-44', 'ac_45-49', 'ac_50-54', 'ac_55-59', 'ac_60-64', 'ac_65-69', 'ac_70-74', 'ac_75-79',
             'ac_80+', 'd_No', 'd_No, pre-diabetes or borderline diabetes', 'd_Yes', 'd_Yes, but female told only during pregnancy',
         ]
-        
-        # Fill missing columns with 0
+
         for col in file_columns:
             if col not in diseases.columns:
                 diseases[col] = 0
         
+        print(diseases.columns)
 
-        pca = PCA(n_components=1, random_state=123)
-        pca.fit(diseases[['BMI', 'Weight_(kg)']])
-        diseases['BMI_W'] = pca.transform(diseases.loc[:, ('BMI', 'Weight_(kg)')]).flatten()
-        diseases.drop(['BMI', 'Weight_(kg)'], axis=1, inplace=True)
-        diseases = diseases[file_columns]
+        try:
+            pkl_file_path = os.environ.get('PCA_DATA')
+            with open(pkl_file_path, 'rb') as file:
+                loaded_pca = pickle.load(file)
+            dfs = pd.DataFrame(loaded_pca)
+            
 
-        preprocessed_data = diseases.to_dict(orient='records')[0]
+            pca = PCA(n_components=1, random_state=123)
+            pca.fit(dfs[['BMI','Weight_(kg)']])
+            diseases['BMI_W'] = pca.transform(diseases.loc[:, ('BMI','Weight_(kg)')]).flatten()
 
-        model_name = "LogisticRegression"
-        model_path = os.path.join(r'C:\Users\Muhammad\Documents\tugas\pribadi\cardiovascular\cardiovascular-pred-analysis', f"{model_name}.pkl")
-        with open(model_path, "rb") as file:
+            print(diseases['BMI_W'])
+        except Exception as e:
+            print(json.dumps({"errortrydua": str(e)}))
+
+        desired_order = [
+            'Exercise', 'Skin_Cancer', 'Other_Cancer', 'Depression', 'Arthritis', 'Sex',
+            'Height_(cm)', 'Smoking_History', 'Alcohol_Consumption', 'Fruit_Consumption',
+            'Green_Vegetables_Consumption', 'FriedPotato_Consumption', 'gh_Excellent', 'gh_Fair',
+            'gh_Good', 'gh_Poor', 'gh_Very Good', 'checkup_5 or more years ago', 'checkup_Never',
+            'checkup_Within the past 2 years', 'checkup_Within the past 5 years', 'checkup_Within the past year',
+            'ac_18-24', 'ac_25-29', 'ac_30-34', 'ac_35-39', 'ac_40-44', 'ac_45-49', 'ac_50-54',
+            'ac_55-59', 'ac_60-64', 'ac_65-69', 'ac_70-74', 'ac_75-79', 'ac_80+',
+            'd_No', 'd_No, pre-diabetes or borderline diabetes', 'd_Yes', 'd_Yes, but female told only during pregnancy',
+            'BMI_W'
+        ]
+
+        df_ordered = diseases.reindex(columns=desired_order)
+
+
+        pkl_file_path = os.environ.get('SCALER_MODEL_PATH')
+        with open(pkl_file_path, 'rb') as file:
+            loaded_scaler = pickle.load(file)
+
+        numerical_columns = ['Height_(cm)', 'Alcohol_Consumption', 'Fruit_Consumption',
+                     'Green_Vegetables_Consumption', 'FriedPotato_Consumption', 'BMI_W']
+        
+        df_ordered[numerical_columns] = loaded_scaler.transform(df_ordered[numerical_columns])
+
+        pkl_file_path = os.environ.get('MODELDTC')
+        with open(pkl_file_path, "rb") as file:
             model = pickle.load(file)
         
-        preprocessed_df = pd.DataFrame([preprocessed_data])
-        heart_disease_prediction = model.predict(preprocessed_df)
+        heart_disease_prediction = model.predict(df_ordered)
 
-        # Print the prediction result for Heart_Disease
-        print(json.dumps({"Heart_Disease_Prediction": int(heart_disease_prediction[0])}))
+        print(json.dumps({"Heart_Disease_Prediction": str(heart_disease_prediction[0])}))
     except Exception as e:
         print(json.dumps({"error": str(e)}))
 
