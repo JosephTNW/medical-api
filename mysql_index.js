@@ -2,14 +2,15 @@ import express from "express";
 import { createConnection } from "mysql";
 import dotenv from "dotenv/config";
 import cors from "cors";
+import { spawn } from "child_process";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 const port = 3050;
 
-const medic_table = process.env["DB_MEDIC_TABLE_NAME"];
-const model_stat_table = process.env["DB_MODEL_STAT_TABLE_NAME"];
+const medic_table = process.env.DB_MEDIC_TABLE_NAME;
+const model_stat_table = process.env.DB_MODEL_STAT_TABLE_NAME;
 
 const column_list = [
   "General_Health",
@@ -37,9 +38,9 @@ const column_list = [
 const connection = createConnection({
   host: "localhost",
   port: 3306,
-  user: process.env["DB_USER"],
-  password: process.env["DB_PASSWORD"],
-  database: process.env["DB_NAME"],
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
 // Connect to the MySQL database
@@ -271,6 +272,51 @@ app.delete("/delete/:id", (req, res) => {
       res.json({ message: "Data deleted successfully" });
     }
   );
+});
+
+app.post('/preprocess', (req, res) => {
+  
+
+  const pythonProcess = spawn('python', ['./preprocess.py'], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  pythonProcess.stdin.write(JSON.stringify(req.body));
+  pythonProcess.stdin.end();
+
+
+  let preprocessData = '';
+
+  pythonProcess.stdout.on('data', (data) => {
+    console.log('Python output:', data.toString());
+    preprocessData += data.toString();
+  });
+
+  pythonProcess.stderr.on('data', (data) => {
+    console.error(`stderr: ${data}`);
+  });
+
+  pythonProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error('Failed to preprocess data');
+      res.status(500).send('Failed to preprocess data');
+    }
+  });
+
+  pythonProcess.stdout.on('end', () => {
+    preprocessData = preprocessData.replace(/NaN/g, 'null');
+
+    const jsonStartIdx = preprocessData.indexOf('{');
+    const jsonEndIdx = preprocessData.indexOf('}') + 1;
+    const jsonData = preprocessData.substring(jsonStartIdx, jsonEndIdx);  
+
+    try {
+      const parsedData = JSON.parse(jsonData)
+      res.json(parsedData);
+    } catch (error) {
+      console.error('Error preprocessing data:', error);
+      res.status(500).send('Failed to preprocess data');
+    }
+  });
 });
 
 // Start the server
