@@ -67,109 +67,129 @@ app.get("/count/:column", (req, res) => {
 });
 
 app.get("/countAll/", async (req, res) => {
-    const end_result = {};
+  const end_result = {};
 
-    try {
-      await Promise.all(
-        column_list.map((column) => {
-          return new Promise((resolve, reject) => {
-            connection.query(
-              `SELECT ${column}, COUNT(*) AS category_count FROM ${medic_table} GROUP BY ${column}`,
-              (err, results) => {
-                if (err) {
-                  console.error("Error executing MySQL query:", err);
-                  reject(err);
-                } else {
-                  end_result[column] = results;
-                  resolve();
-                }
+  try {
+    await Promise.all(
+      column_list.map((column) => {
+        return new Promise((resolve, reject) => {
+          connection.query(
+            `SELECT ${column}, COUNT(*) AS category_count FROM ${medic_table} GROUP BY ${column}`,
+            (err, results) => {
+              if (err) {
+                console.error("Error executing MySQL query:", err);
+                reject(err);
+              } else {
+                end_result[column] = results;
+                resolve();
               }
-            );
-          });
-        })
-      );
+            }
+          );
+        });
+      })
+    );
 
-      res.json(end_result);
-    } catch (err) {
-        console.error("Error executing MySQL query:", err);
-        res.status(500).json({ error: "Failed to fetch data" });
-    }
+    res.json(end_result);
+  } catch (err) {
+    console.error("Error executing MySQL query:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
+  }
 });
 
 app.get("/modelStat", (req, res) => {
   const model_results = {};
 
-  connection.query(
-    `SELECT * FROM ${model_stat_table};`,
-    (err, results) => {
-      if (err) {
-        console.error("Error executing MySQL query:", err);
-        res.status(500).json({ error: "Failed to fetch data" });
-        return;
-      }
-
-      results.forEach(result => {
-        model_results[result.model_name] = {
-          train_f1_score: result.train_f1_score,
-          test_f1_score: result.test_f1_score,
-        }
-      });
-
-      res.json(model_results);
+  connection.query(`SELECT * FROM ${model_stat_table};`, (err, results) => {
+    if (err) {
+      console.error("Error executing MySQL query:", err);
+      res.status(500).json({ error: "Failed to fetch data" });
+      return;
     }
-  );
+
+    results.forEach((result) => {
+      model_results[result.model_name] = {
+        train_f1_score: result.train_f1_score,
+        test_f1_score: result.test_f1_score,
+      };
+    });
+
+    res.json(model_results);
+  });
 });
 
 app.get("/dashContent", async (req, res) => {
-    const count_results = {};
+  const count_results = {};
 
-    try {
-      await Promise.all(
-        column_list.map((column) => {
-          return new Promise((resolve, reject) => {
-            connection.query(
-              `SELECT ${column}, COUNT(*) AS category_count FROM ${medic_table} GROUP BY ${column}`,
-              (err, results) => {
-                if (err) {
-                  console.error("Error executing MySQL query:", err);
-                  reject(err);
-                } else {
-                  count_results[column] = results;
-                  resolve();
-                }
+  try {
+    await Promise.all(
+      column_list.map((column) => {
+        return new Promise((resolve, reject) => {
+          connection.query(
+            `SELECT ${column}, COUNT(*) AS category_count FROM ${medic_table} GROUP BY ${column}`,
+            (err, results) => {
+              if (err) {
+                console.error("Error executing MySQL query:", err);
+                reject(err);
+              } else {
+                count_results[column] = results;
+                resolve();
               }
-            );
-          });
-        })
-      );
-    } catch (err) {
-        console.error("Error executing MySQL query:", err);
-        res.status(500).json({ error: "Failed to fetch data" });
+            }
+          );
+        });
+      })
+    );
+  } catch (err) {
+    console.error("Error executing MySQL query:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
+  }
+
+  const model_results = {};
+
+  connection.query(`SELECT * FROM ${model_stat_table};`, (err, results) => {
+    if (err) {
+      console.error("Error executing MySQL query:", err);
+      res.status(500).json({ error: "Failed to fetch data" });
+      return;
     }
 
-    const model_results = {}
+    results.forEach((result) => {
+      model_results[result.model_name] = {
+        train_f1_score: result.train_f1_score,
+        test_f1_score: result.test_f1_score,
+      };
+    });
 
+    res.json({ count_results, model_results });
+  });
+});
+
+app.get("/form/:column", async (req, res) => {
+  const column = req.params.column;
+  let count_results = [];
+
+  try {
     connection.query(
-      `SELECT * FROM ${model_stat_table};`,
+      `SELECT DISTINCT ${column} FROM ${medic_table}`,
       (err, results) => {
         if (err) {
           console.error("Error executing MySQL query:", err);
-          res.status(500).json({ error: "Failed to fetch data" });
-          return;
+        } else {
+          results.forEach((element, idx) => {
+            count_results[idx] = {}
+
+            count_results[idx]['value'] = element[column]
+            count_results[idx]['label'] = element[column]
+          });
         }
-
-        results.forEach(result => {
-          model_results[result.model_name] = {
-            train_f1_score: result.train_f1_score,
-            test_f1_score: result.test_f1_score,
-          }
-        });
-
-        res.json({count_results, model_results});
+        res.json( count_results );
       }
     );
+  } catch (err) {
+    console.error("Error executing MySQL query:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
   }
-)
+});
 
 app.get("/count", (req, res) => {
   connection.query(
@@ -232,7 +252,7 @@ app.put("/update/:id", (req, res) => {
         res.status(500).json({ error: "Failed to update data" });
         return;
       }
-      res.json({ status:200, message: "Data updated successfully" });
+      res.json({ status: 200, message: "Data updated successfully" });
     }
   );
 });
