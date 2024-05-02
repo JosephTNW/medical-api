@@ -34,6 +34,18 @@ const column_list = [
   "FriedPotato_Consumption",
 ];
 
+const categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Heart_Disease', 'Skin_Cancer',
+'Other_Cancer', 'Depression', 'Diabetes', 'Arthritis', 'Sex',
+'Age_Category', 'Smoking_History']
+
+const numerical_columns = [
+  'Height', 'Weight', 'BMI', 'Alcohol_Consumption',
+  'Fruit_Consumption', 'Green_Vegetables_Consumption',
+  'FriedPotato_Consumption'
+]
+
+const heart_disease_types = ["Yes", "No"];
+
 // Create a MySQL connection
 const connection = createConnection({
   host: "localhost",
@@ -165,6 +177,78 @@ app.get("/dashContent", async (req, res) => {
   });
 });
 
+app.get("/evaluateContent", async (req, res) => {
+  const model_results = {};
+
+  connection.query(`SELECT * FROM ${model_stat_table};`, (err, results) => {
+    if (err) {
+      console.error("Error executing MySQL query:", err);
+      res.status(500).json({ error: "Failed to fetch data" });
+      return;
+    }
+
+    results.forEach((result) => {
+      model_results[result.model_name] = {
+        train_f1_score: result.train_f1_score,
+        test_f1_score: result.test_f1_score,
+      };
+    });
+
+    res.json({ model_results });
+  });
+});
+
+app.get("/analyzeAttributes", async (req, res) => {
+  const categ_multivariate = {};
+
+  try {
+    const categ_promises = categorical_columns.map((column) => {
+      categ_multivariate[column] = {};
+      return Promise.all(
+        heart_disease_types.map((heart_disease) => {
+          const query = `
+            SELECT ${column}, COUNT(*) AS category_count
+            FROM ${medic_table}
+            WHERE Heart_Disease = ?
+            GROUP BY ${column}
+          `;
+          return new Promise((resolve, reject) => {
+            connection.query(query, [heart_disease], (err, results) => {
+              if (err) {
+                console.error("Error executing MySQL query:", err);
+                reject(err);
+              } else {
+                categ_multivariate[column][heart_disease] = results;
+                resolve();
+              }
+            });
+          });
+        })
+      );
+    });
+
+    await Promise.all(categ_promises);
+  } catch (err) {
+    console.error("Error executing MySQL query:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
+  }
+
+  try {
+    connection.query(`SELECT ${numerical_columns} FROM ${medic_table}`, (err, results) => {
+      if (err) {
+        console.error("Error executing MySQL query:", err);
+        res.status(500).json({ error: "Failed to fetch data" });
+        return;
+      }
+
+      res.json({ "categorical_multivariate": categ_multivariate, "numerical_multivariate": results });
+    });
+  } catch (error) {
+    console.error("Error executing MySQL query:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
+  }
+});
+
 app.get("/form/:column", async (req, res) => {
   const column = req.params.column;
   let count_results = [];
@@ -177,13 +261,13 @@ app.get("/form/:column", async (req, res) => {
           console.error("Error executing MySQL query:", err);
         } else {
           results.forEach((element, idx) => {
-            count_results[idx] = {}
+            count_results[idx] = {};
 
-            count_results[idx]['value'] = element[column]
-            count_results[idx]['label'] = element[column]
+            count_results[idx]["value"] = element[column];
+            count_results[idx]["label"] = element[column];
           });
         }
-        res.json( count_results );
+        res.json(count_results);
       }
     );
   } catch (err) {
@@ -274,47 +358,44 @@ app.delete("/delete/:id", (req, res) => {
   );
 });
 
-app.post('/preprocess', (req, res) => {
-  
-
-  const pythonProcess = spawn('python', ['./preprocess.py'], {
-    stdio: ['pipe', 'pipe', 'pipe'],
+app.post("/preprocess", (req, res) => {
+  const pythonProcess = spawn("python", ["./preprocess.py"], {
+    stdio: ["pipe", "pipe", "pipe"],
   });
   pythonProcess.stdin.write(JSON.stringify(req.body));
   pythonProcess.stdin.end();
 
+  let preprocessData = "";
 
-  let preprocessData = '';
-
-  pythonProcess.stdout.on('data', (data) => {
-    console.log('Python output:', data.toString());
+  pythonProcess.stdout.on("data", (data) => {
+    console.log("Python output:", data.toString());
     preprocessData += data.toString();
   });
 
-  pythonProcess.stderr.on('data', (data) => {
+  pythonProcess.stderr.on("data", (data) => {
     console.error(`stderr: ${data}`);
   });
 
-  pythonProcess.on('close', (code) => {
+  pythonProcess.on("close", (code) => {
     if (code !== 0) {
-      console.error('Failed to preprocess data');
-      res.status(500).send('Failed to preprocess data');
+      console.error("Failed to preprocess data");
+      res.status(500).send("Failed to preprocess data");
     }
   });
 
-  pythonProcess.stdout.on('end', () => {
-    preprocessData = preprocessData.replace(/NaN/g, 'null');
+  pythonProcess.stdout.on("end", () => {
+    preprocessData = preprocessData.replace(/NaN/g, "null");
 
-    const jsonStartIdx = preprocessData.indexOf('{');
-    const jsonEndIdx = preprocessData.indexOf('}') + 1;
-    const jsonData = preprocessData.substring(jsonStartIdx, jsonEndIdx);  
+    const jsonStartIdx = preprocessData.indexOf("{");
+    const jsonEndIdx = preprocessData.indexOf("}") + 1;
+    const jsonData = preprocessData.substring(jsonStartIdx, jsonEndIdx);
 
     try {
-      const parsedData = JSON.parse(jsonData)
+      const parsedData = JSON.parse(jsonData);
       res.json(parsedData);
     } catch (error) {
-      console.error('Error preprocessing data:', error);
-      res.status(500).send('Failed to preprocess data');
+      console.error("Error preprocessing data:", error);
+      res.status(500).send("Failed to preprocess data");
     }
   });
 });
