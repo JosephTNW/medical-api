@@ -34,3 +34,4 @@ If you don't run this you won't be able to do CRUD on the [medical-dash](https:/
 4. Execute `npm start` to automatically run the mysql_index.js script.
 5. To test you can go to localhost:3050 and type in an available request route.
 6. On the medical-dash, create a .env file based on the .env_example available there too.
+7. For the models download it [here](https://drive.google.com/drive/folders/1Sg4BDTFuU3VyXwr-kvaYX6-Q9envur4w?usp=sharing) and put it according to your env
