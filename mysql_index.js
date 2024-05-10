@@ -3,6 +3,7 @@ import { createConnection } from "mysql";
 import dotenv from "dotenv/config";
 import cors from "cors";
 import { spawn } from "child_process";
+import waitPort from "wait-port";
 
 const app = express();
 app.use(cors());
@@ -46,23 +47,37 @@ const numerical_columns = [
 
 const heart_disease_types = ["Yes", "No"];
 
-// Create a MySQL connection
-const connection = createConnection({
-  host: "localhost",
-  port: 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-});
+let connection;
 
-// Connect to the MySQL database
-connection.connect((err) => {
-  if (err) {
-    console.error("Error connecting to MySQL database:", err);
-    return;
+// Create a MySQL connection
+async function connectToDatabase() {
+  try {
+    await waitPort({ host: process.env.DB_HOST, port: 3306, timeout: 30000 });
+    console.log('Database is ready, attempting to connect...');
+
+    connection = createConnection({
+      host: process.env.DB_HOST,
+      port: 3306,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    });
+
+    connection.connect((err) => {
+      if (err) {
+        console.error('Error connecting to MySQL database:', err);
+        process.exit(1);
+      }
+      console.log('Connected to MySQL database!');
+      // You can now use the connection object to execute queries
+    });
+  } catch (error) {
+    console.error('Error connecting to MySQL database:', error);
+    process.exit(1);
   }
-  console.log("Connected to MySQL database");
-});
+}
+
+connectToDatabase();
 
 app.get("/count/:column", (req, res) => {
   const column = req.params.column;
