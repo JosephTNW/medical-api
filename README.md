@@ -26,7 +26,8 @@ If you don't run this you won't be able to do CRUD on the [medical-dash](https:/
      LINES TERMINATED BY '\n'```
    - There may be additional truncation, edit the fields character limit to solve this issue
    - Delete the first row if it is indeed the column names.
-
+3. Working Python, C++ and C environment (sklearn is used for the model)
+   
 ## How to run this?
 1. First create a .env file using the available .env_example as a template.
 2. Open command prompt on the medical-api's root directory.
