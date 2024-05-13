@@ -206,6 +206,8 @@ app.get("/evaluateContent", async (req, res) => {
       model_results[result.model_name] = {
         train_f1_score: result.train_f1_score,
         test_f1_score: result.test_f1_score,
+        train_accuracy_score: result.train_accuracy_score,
+        test_accuracy_score: result.test_accuracy_score
       };
     });
 
